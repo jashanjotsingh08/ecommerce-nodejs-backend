@@ -1,27 +1,35 @@
-import Hapi from '@hapi/hapi';
+import Hapi from "@hapi/hapi";
+import routes from "./routes";
+import { db } from "./database";
 
-const start = async()=>{
-    const server = Hapi.server({
-        port: 8000,
-        host: 'localhost',
-    });
+let server ;
 
-    server.route({
-        method: 'GET',
-        path: '/hello',
-        handler: (req, h)=>{
-            return 'Hello!';
-            //return res.response('Hello!').code(201); //Just a demo for sending your own status code
-        }
-    });
+const start = async () => {
+  const server = Hapi.server({
+    port: 8000,
+    host: "localhost",
+  });
 
-    await server.start();
-    console.log(`Server is listning on ${server.info.uri}`);
-}
+  routes.forEach(route =>server.route(route));
 
-process.on('unhandledRejection', err=>{
-    console.log(err);
-    process.exit(1);
+  db.connect();
+  await server.start();
+  console.log(`Server is listning on ${server.info.uri}`);
+};
+
+process.on("unhandledRejection", err => {
+  console.log(err);
+  process.exit(1);
 });
+
+process.on("SIGINT", async()=>{
+  console.log("Stopping Server...");
+
+  await server.stop({timeout:10000});
+
+  db.end();
+  console.log('Server Stopped');
+  process.exit(0);
+})
 
 start();
